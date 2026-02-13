@@ -46,6 +46,7 @@ See [CIP-0](CIPS/cip-0.md) for the full process definition.
 | [CIP-0](CIPS/cip-0.md) | CIP Process | Meta | Final |
 | [CIP-1](CIPS/cip-1.md) | Coinbase KYC Attestation | Identity | Review |
 | [CIP-2](CIPS/cip-2.md) | Coinbase Country Attestation | Identity | Review |
+| [CIP-3](CIPS/cip-3.md) | Corporate Domain Attestation (JWT) | Identity | Draft |
 
 ## Contributing
 
