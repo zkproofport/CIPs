@@ -51,10 +51,12 @@ Coinbase has verified 100M+ users and publishes on-chain attestations via EAS. T
 
 ### Nullifier
 
-- **Derivation**: `keccak256(user_address ‖ signal_hash ‖ scope)`
+- **Derivation** (2-step hash):
+  1. `user_secret = keccak256(user_address ‖ signal_hash)`
+  2. `nullifier = keccak256(user_secret ‖ scope)`
 - **Scope**: dApp-defined string (e.g., `"myapp.xyz"`) hashed to 32 bytes
 - **Purpose**: Prevents the same user from generating multiple proofs for the same scope (sybil resistance)
-- **On-chain registration**: Via `ZKProofportNullifierRegistry.verifyAndRegister()`
+- **Registration**: Managed off-chain by the dApp or relay service
 
 ### Verification Logic
 
@@ -94,6 +96,7 @@ PART 4: Sybil Resistance
 
 | Chain | Address | Status |
 |-------|---------|--------|
+| Base Mainnet | `0xF7dED73E7a7fc8fb030c35c5A88D40ABe6865382` | Deployed |
 | Base Sepolia | `0xEb9eb5452790Cfe549fF83CEB3Dbe1C432231492` | Deployed |
 
 ### Off-Chain Verification

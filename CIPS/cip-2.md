@@ -34,9 +34,10 @@ CIP-2 extends CIP-1's attestation verification with country-specific logic:
 | 0-31 | `signal_hash` | `[u8; 32]` | Anti-replay challenge from the dApp |
 | 32-63 | `signer_list_merkle_root` | `[u8; 32]` | Merkle root of valid Coinbase signers |
 | 64-95 | `scope` | `[u8; 32]` | `keccak256(scope_string)` for sybil resistance |
-| 96-117 | `country_list` | `[[u8; 2]; 11]` | List of 2-byte ISO 3166-1 country codes (max 11) |
-| 118 | `inclusion_mode` | `u8` | `1` = inclusion (must be in list), `0` = exclusion (must NOT be in list) |
-| 119-150 | `nullifier` | `[u8; 32]` | `keccak256(user_address ‖ signal_hash ‖ scope)` |
+| 96-115 | `country_list` | `[[u8; 2]; 10]` | List of 2-byte ISO 3166-1 country codes (max 10) |
+| 116 | `country_list_length` | `u32` | Number of valid entries in the country list |
+| 117 | `is_included` | `bool` | `true` = inclusion (must be in list), `false` = exclusion (must NOT be in list) |
+| 118-149 | `nullifier` | `[u8; 32]` | Derived via 2-step hash (see below) |
 
 ### Private Inputs
 
@@ -50,7 +51,9 @@ All CIP-1 private inputs apply (user_address, user_signature, user_pubkey, coinb
 
 ### Nullifier
 
-Same derivation as CIP-1: `keccak256(user_address ‖ signal_hash ‖ scope)`
+Same derivation as CIP-1 (2-step hash):
+1. `user_secret = keccak256(user_address ‖ signal_hash)`
+2. `nullifier = keccak256(user_secret ‖ scope)`
 
 ### Verification Logic
 
@@ -59,11 +62,11 @@ PARTS 1-2: Same as CIP-1 (User Ownership + Attestation Authenticity)
 
 PART 3: Country Verification
 ├─ Verify TX calls attestCountry(uint256) (selector: 0x0a225248)
-├─ Extract 2-byte country code from calldata
-├─ Verify calldata address matches user_address
-├─ If inclusion_mode == 1:
+├─ Extract 2-byte country code from calldata[14..16]
+├─ Verify calldata address (calldata[16..36]) matches user_address
+├─ If is_included == true:
 │   └─ Assert country IS in country_list
-└─ If inclusion_mode == 0:
+└─ If is_included == false:
     └─ Assert country is NOT in country_list
 
 PART 4: Sybil Resistance (same as CIP-1)
@@ -79,7 +82,7 @@ Country codes use ISO 3166-1 alpha-2 encoding (2 ASCII bytes):
 | KR | South Korea | `[0x4B, 0x52]` |
 | SG | Singapore | `[0x53, 0x47]` |
 
-The `country_list` supports up to 11 countries per proof. Unused slots are zero-padded.
+The `country_list` supports up to 10 countries per proof. Unused slots are zero-padded. The `country_list_length` public input specifies how many entries are valid (must be 1–10).
 
 ### Dependencies
 
@@ -95,6 +98,7 @@ Same as CIP-1: Noir + Barretenberg UltraHonk + mopro for mobile
 
 | Chain | Address | Status |
 |-------|---------|--------|
+| Base Mainnet | `0xF3D5A09d2C85B28C52EF2905c1BE3a852b609D0C` | Deployed |
 | Base Sepolia | `0xD0F3eE648386B59B484157332E736388Fcc41F47` | Deployed |
 
 ### SDK Integration
