@@ -33,11 +33,11 @@ CIP-2 extends CIP-1's attestation verification with country-specific logic:
 |-------|-------|------|-------------|
 | 0-31 | `signal_hash` | `[u8; 32]` | Anti-replay challenge from the dApp |
 | 32-63 | `signer_list_merkle_root` | `[u8; 32]` | Merkle root of valid Coinbase signers |
-| 64-95 | `scope` | `[u8; 32]` | `keccak256(scope_string)` for sybil resistance |
-| 96-115 | `country_list` | `[[u8; 2]; 10]` | List of 2-byte ISO 3166-1 country codes (max 10) |
-| 116 | `country_list_length` | `u32` | Number of valid entries in the country list |
-| 117 | `is_included` | `bool` | `true` = inclusion (must be in list), `false` = exclusion (must NOT be in list) |
-| 118-149 | `nullifier` | `[u8; 32]` | Derived via 2-step hash (see below) |
+| 64-83 | `country_list` | `[[u8; 2]; 10]` | List of 2-byte ISO 3166-1 country codes (max 10, zero-padded) |
+| 84 | `country_list_length` | `u32` | Number of valid entries in country_list (1–10) |
+| 85 | `is_included` | `bool` | `true` = inclusion (must be in list), `false` = exclusion (must NOT be in list) |
+| 86-117 | `scope` | `[u8; 32]` | `keccak256(scope_string)` for sybil resistance |
+| 118-149 | `nullifier` | `[u8; 32]` | `keccak256(user_address ‖ signal_hash ‖ scope)` |
 
 ### Private Inputs
 
@@ -51,9 +51,7 @@ All CIP-1 private inputs apply (user_address, user_signature, user_pubkey, coinb
 
 ### Nullifier
 
-Same derivation as CIP-1 (2-step hash):
-1. `user_secret = keccak256(user_address ‖ signal_hash)`
-2. `nullifier = keccak256(user_secret ‖ scope)`
+Same 2-step derivation as CIP-1: `user_secret = keccak256(user_address ‖ signal_hash)` → `nullifier = keccak256(user_secret ‖ scope)`
 
 ### Verification Logic
 
@@ -63,11 +61,12 @@ PARTS 1-2: Same as CIP-1 (User Ownership + Attestation Authenticity)
 PART 3: Country Verification
 ├─ Verify TX calls attestCountry(uint256) (selector: 0x0a225248)
 ├─ Extract 2-byte country code from calldata[14..16]
-├─ Verify calldata address (calldata[16..36]) matches user_address
+├─ Verify calldata address matches user_address
+├─ Validate country_list_length (1 ≤ length ≤ 10)
 ├─ If is_included == true:
-│   └─ Assert country IS in country_list
+│   └─ Assert country IS in country_list[0..country_list_length]
 └─ If is_included == false:
-    └─ Assert country is NOT in country_list
+    └─ Assert country is NOT in country_list[0..country_list_length]
 
 PART 4: Sybil Resistance (same as CIP-1)
 ```
@@ -82,7 +81,7 @@ Country codes use ISO 3166-1 alpha-2 encoding (2 ASCII bytes):
 | KR | South Korea | `[0x4B, 0x52]` |
 | SG | Singapore | `[0x53, 0x47]` |
 
-The `country_list` supports up to 10 countries per proof. Unused slots are zero-padded. The `country_list_length` public input specifies how many entries are valid (must be 1–10).
+The `country_list` supports up to 10 countries per proof. Unused slots are zero-padded. The `country_list_length` field specifies how many entries are valid.
 
 ### Dependencies
 
